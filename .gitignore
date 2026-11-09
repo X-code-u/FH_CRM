@@ -1,0 +1,15 @@
+.DS_Store
+*.log
+
+# Java
+backend/target/
+backend/.flattened-pom.xml
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# 前端构建产物 / 依赖（frontend/.gitignore 已覆盖，此处兜底）
+node_modules/
+dist/
