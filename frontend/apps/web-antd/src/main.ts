@@ -20,8 +20,11 @@ async function initApplication() {
     overrides: overridesPreferences,
   });
 
-  // 应用名称始终以构建配置为准，避免 localStorage 残留旧标题
-  updatePreferences({ app: { name: import.meta.env.VITE_APP_TITLE } });
+  // 应用名称始终以构建配置为准，避免 localStorage 残留旧标题；同时隐藏版权页脚
+  updatePreferences({
+    app: { name: import.meta.env.VITE_APP_TITLE },
+    copyright: { enable: false },
+  });
 
   // 启动应用并挂载
   // vue应用主要逻辑及视图

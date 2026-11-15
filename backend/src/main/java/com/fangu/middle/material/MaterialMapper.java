@@ -11,7 +11,7 @@ import java.math.BigDecimal;
 @Mapper
 public interface MaterialMapper extends BaseMapper<Material> {
 
-    @Select("SELECT COALESCE(MAX(CAST(SUBSTRING(code, 2) AS INTEGER)), 0) FROM material")
+    @Select("SELECT COALESCE(MAX(CAST(SUBSTRING(code, 2) AS SIGNED)), 0) FROM material")
     int maxCodeSeq();
 
     /**

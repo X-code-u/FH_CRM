@@ -84,3 +84,25 @@ export function saveStoreApi(data: Partial<StoreItem>) {
 export function changeStoreStatusApi(id: number, active: boolean) {
   return requestClient.put(`/store/${id}/status`, { active });
 }
+
+export function getMyStoreApi() {
+  return requestClient.get<StoreItem>('/store/my');
+}
+
+export interface StoreAccountItem {
+  username: string;
+  realName?: string;
+  status?: string;
+  storeId?: number;
+}
+
+export function getStoreAccountApi(id: number) {
+  return requestClient.get<StoreAccountItem | null>(`/store/${id}/account`);
+}
+
+export function saveStoreAccountApi(
+  id: number,
+  data: { username: string; password?: string; realName?: string },
+) {
+  return requestClient.post(`/store/${id}/account`, data);
+}

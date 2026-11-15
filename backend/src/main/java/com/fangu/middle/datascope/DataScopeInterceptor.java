@@ -43,7 +43,11 @@ public class DataScopeInterceptor implements InnerInterceptor {
     private static final Map<String, String> FRANCHISEE_COLUMN = Map.of(
             "franchisee", "id",
             "store", "franchisee_id",
-            "sale_order", "franchisee_id_snapshot"
+            "sale_order", "franchisee_id_snapshot",
+            "store_package", "franchisee_id",
+            "store_package_item", "franchisee_id",
+            "store_writeoff", "franchisee_id",
+            "store_writeoff_item", "franchisee_id"
     );
 
     /** STORE 范围：表 -> 归属列 */
@@ -51,7 +55,11 @@ public class DataScopeInterceptor implements InnerInterceptor {
             "store", "id",
             "sale_order", "store_id",
             "store_stock", "store_id",
-            "stock_flow", "store_id"
+            "stock_flow", "store_id",
+            "store_package", "store_id",
+            "store_package_item", "store_id",
+            "store_writeoff", "store_id",
+            "store_writeoff_item", "store_id"
     );
 
     /**

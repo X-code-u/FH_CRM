@@ -27,6 +27,7 @@ public class Material {
     /** 总部可售库存；null 表示无限库存（编辑时需允许写回 null） */
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private BigDecimal stockQty;
+    private String imageUrl;
     private Boolean isActive;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;

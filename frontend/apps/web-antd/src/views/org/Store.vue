@@ -9,7 +9,9 @@ import { message, Modal } from 'ant-design-vue';
 import {
   changeStoreStatusApi,
   getFranchiseePageApi,
+  getStoreAccountApi,
   getStorePageApi,
+  saveStoreAccountApi,
   saveStoreApi,
   type FranchiseeItem,
   type StoreItem,
@@ -36,7 +38,7 @@ const columns = [
   { title: '负责人', dataIndex: 'contactName', width: 100 },
   { title: '开业日期', dataIndex: 'openDate', width: 110 },
   { title: '状态', dataIndex: 'isActive', width: 90 },
-  { title: '操作', key: 'action', width: 140, fixed: 'right' as const },
+  { title: '操作', key: 'action', width: 210, fixed: 'right' as const },
 ];
 
 async function load() {
@@ -109,6 +111,70 @@ function toggleStatus(row: StoreItem) {
   });
 }
 
+// ---------- 门店登录账号 ----------
+const accountOpen = ref(false);
+const accountSaving = ref(false);
+const accountLoading = ref(false);
+const accountStoreName = ref('');
+const accountRow = ref<StoreItem | null>(null);
+const hasAccount = ref(false);
+const accountFormRef = ref();
+const accountForm = reactive({ username: '', password: '', realName: '' });
+
+async function openAccount(row: StoreItem) {
+  accountRow.value = row;
+  accountStoreName.value = row.name;
+  accountForm.username = '';
+  accountForm.password = '';
+  accountForm.realName = '';
+  hasAccount.value = false;
+  accountOpen.value = true;
+  accountLoading.value = true;
+  try {
+    const data = await getStoreAccountApi(row.id);
+    if (data) {
+      hasAccount.value = true;
+      accountForm.username = data.username;
+      accountForm.realName = data.realName || '';
+    }
+  } finally {
+    accountLoading.value = false;
+  }
+}
+
+const accountRules = {
+  username: [
+    { required: true, message: '请输入登录账号' },
+    { pattern: /^[A-Za-z0-9_]{3,32}$/, message: '3-32 位字母、数字或下划线' },
+  ],
+  password: [
+    {
+      validator: (_rule: any, value: string) => {
+        if (!hasAccount.value && !value) return Promise.reject(new Error('新建账号必须设置密码'));
+        if (value && value.length < 6) return Promise.reject(new Error('密码不少于 6 位'));
+        return Promise.resolve();
+      },
+    },
+  ],
+};
+
+async function submitAccount() {
+  await accountFormRef.value?.validate();
+  if (!accountRow.value) return;
+  accountSaving.value = true;
+  try {
+    await saveStoreAccountApi(accountRow.value.id, {
+      username: accountForm.username,
+      password: accountForm.password || undefined,
+      realName: accountForm.realName || undefined,
+    });
+    message.success('账号已保存');
+    accountOpen.value = false;
+  } finally {
+    accountSaving.value = false;
+  }
+}
+
 onMounted(async () => {
   await load();
   if (canEdit.value) {
@@ -160,6 +226,7 @@ onMounted(async () => {
           </template>
           <template v-else-if="column.key === 'action' && canEdit">
             <a-button type="link" size="small" @click="openEdit(record)">编辑</a-button>
+            <a-button type="link" size="small" @click="openAccount(record)">账号</a-button>
             <a-button type="link" size="small" :danger="record.isActive" @click="toggleStatus(record)">
               {{ record.isActive ? '停用' : '启用' }}
             </a-button>
@@ -194,6 +261,33 @@ onMounted(async () => {
           <a-date-picker v-model:value="form.openDate" value-format="YYYY-MM-DD" class="w-full" />
         </a-form-item>
       </a-form>
+    </a-modal>
+
+    <a-modal
+      v-model:open="accountOpen"
+      :title="`门店账号 · ${accountStoreName}`"
+      :confirm-loading="accountSaving"
+      @ok="submitAccount"
+    >
+      <a-spin :spinning="accountLoading">
+        <a-form ref="accountFormRef" :model="accountForm" :rules="accountRules" :label-col="{ span: 5 }">
+          <a-form-item label="登录账号" name="username">
+            <a-input v-model:value="accountForm.username" :maxlength="32" placeholder="3-32 位字母、数字或下划线" />
+          </a-form-item>
+          <a-form-item label="姓名" name="realName">
+            <a-input v-model:value="accountForm.realName" :maxlength="32" placeholder="选填" />
+          </a-form-item>
+          <a-form-item label="登录密码" name="password">
+            <a-input-password
+              v-model:value="accountForm.password"
+              :placeholder="hasAccount ? '留空则不修改密码' : '不少于 6 位'"
+            />
+          </a-form-item>
+          <div class="text-xs text-gray-500">
+            账号固定为门店店长，登录后仅能操作本门店数据。
+          </div>
+        </a-form>
+      </a-spin>
     </a-modal>
   </Page>
 </template>

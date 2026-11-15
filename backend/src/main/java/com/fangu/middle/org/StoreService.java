@@ -5,6 +5,10 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fangu.middle.audit.Audit;
 import com.fangu.middle.audit.AuditContext;
+import com.fangu.middle.audit.AuditService;
+import com.fangu.middle.auth.AuthService;
+import com.fangu.middle.auth.CurrentAccount;
+import com.fangu.middle.auth.StoreAccountService;
 import com.fangu.middle.common.BizException;
 import com.fangu.middle.common.PageResult;
 import lombok.Data;
@@ -27,9 +31,30 @@ public class StoreService {
 
     private final StoreMapper storeMapper;
     private final FranchiseeMapper franchiseeMapper;
+    private final StoreAccountService storeAccountService;
+    private final AuditService auditService;
+    private final AuthService authService;
 
     public Store getById(Long id) {
         return storeMapper.selectById(id);
+    }
+
+    /** 当前登录账号所属门店（门店账号用于下单等场景） */
+    public StoreVO my() {
+        CurrentAccount acc = authService.current();
+        if (acc.getStoreId() == null) {
+            throw new BizException(40001, "当前账号未绑定门店");
+        }
+        Store store = storeMapper.selectById(acc.getStoreId());
+        if (store == null) {
+            throw new BizException(40001, "所属门店不存在");
+        }
+        StoreVO vo = StoreVO.from(store);
+        if (store.getFranchiseeId() != null) {
+            Franchisee franchisee = franchiseeMapper.selectById(store.getFranchiseeId());
+            vo.setFranchiseeName(franchisee == null ? null : franchisee.getName());
+        }
+        return vo;
     }
 
     /** 分页查询（归属条件由数据权限拦截器在 SQL 层追加） */
@@ -171,6 +196,29 @@ public class StoreService {
         }
     }
 
+    /** 门店登录账号查询 */
+    public StoreAccountService.AccountVO getAccount(Long storeId) {
+        if (storeMapper.selectById(storeId) == null) {
+            throw new BizException(40001, "门店不存在");
+        }
+        return storeAccountService.findByStoreId(storeId);
+    }
+
+    /** 门店登录账号设置：总部为门店创建或重置店长账号 */
+    public void saveAccount(Long storeId, AccountSaveReq req) {
+        Store store = storeMapper.selectById(storeId);
+        if (store == null) {
+            throw new BizException(40001, "门店不存在");
+        }
+        StoreAccountService.AccountVO old = storeAccountService.findByStoreId(storeId);
+        storeAccountService.save(storeId, store.getFranchiseeId(),
+                req.getUsername(), req.getPassword(), req.getRealName());
+        String oldValue = old == null ? null : "username=" + old.getUsername();
+        String newValue = "storeId=" + storeId + ", username=" + req.getUsername()
+                + (req.getPassword() == null || req.getPassword().isBlank() ? "" : ", password=已重置");
+        auditService.record("STORE_ACCOUNT_SAVE", oldValue, newValue);
+    }
+
     @Data
     public static class StoreQuery {
         private long pageNum = 1;
@@ -190,6 +238,13 @@ public class StoreService {
         private String contactName;
         private String contactPhone;
         private LocalDate openDate;
+    }
+
+    @Data
+    public static class AccountSaveReq {
+        private String username;
+        private String password;
+        private String realName;
     }
 
     @Data

@@ -61,10 +61,16 @@ export interface PurchaseOrder {
   storeType?: string;
   orderDate: string;
   totalAmount: number | string;
-  status: 'CANCELLED' | 'CONFIRMED' | 'PENDING';
+  status: 'CANCELLED' | 'CONFIRMED' | 'PENDING' | 'RECEIVED' | 'SHIPPED';
+  payStatus?: 'PAID' | 'UNPAID';
+  receiptStatus?: 'CONFIRMED' | 'UNCONFIRMED';
   remark?: string;
   cancelReason?: string;
   confirmedAt?: string;
+  paidAt?: string;
+  receiptAt?: string;
+  shippedAt?: string;
+  receivedAt?: string;
   createdAt?: string;
 }
 
@@ -95,4 +101,39 @@ export function approvePurchaseApi(
 
 export function rejectPurchaseApi(id: number, reason: string) {
   return requestClient.put(`/purchase/orders/${id}/reject`, { reason });
+}
+
+export function payPurchaseApi(id: number) {
+  return requestClient.put(`/purchase/orders/${id}/pay`);
+}
+
+export function confirmReceiptApi(id: number) {
+  return requestClient.put(`/purchase/orders/${id}/confirm-receipt`);
+}
+
+export function shipPurchaseApi(id: number) {
+  return requestClient.put(`/purchase/orders/${id}/ship`);
+}
+
+export function receivePurchaseApi(id: number, requestNo: string) {
+  return requestClient.put(`/purchase/orders/${id}/receive`, { requestNo });
+}
+
+// ---------- 门店库存 ----------
+export interface StockItem {
+  storeId: number;
+  storeCode?: string;
+  storeName?: string;
+  materialId: number;
+  materialCode?: string;
+  materialName?: string;
+  spec?: string;
+  unit?: string;
+  currentQty: number | string;
+  warnMinQty?: number | string;
+  updatedAt?: string;
+}
+
+export function getStockPageApi(params: Record<string, any>) {
+  return requestClient.get<PageResult<StockItem>>('/stock/page', { params });
 }

@@ -55,8 +55,47 @@ public class PurchaseController {
         return R.ok(null);
     }
 
+    /** 门店付款：一期手动确认付款成功（订单须审核通过） */
+    @SaCheckRole(value = {"FRANCHISEE_ADMIN", "STORE_OP"}, mode = SaMode.OR)
+    @DataScope
+    @PutMapping("/orders/{id}/pay")
+    public R<Void> pay(@PathVariable Long id) {
+        purchaseService.pay(id);
+        return R.ok(null);
+    }
+
+    /** 总部财务确认收款 */
+    @SaCheckRole(value = {"HQ_ADMIN", "HQ_FIN"}, mode = SaMode.OR)
+    @PutMapping("/orders/{id}/confirm-receipt")
+    public R<Void> confirmReceipt(@PathVariable Long id) {
+        purchaseService.confirmReceipt(id);
+        return R.ok(null);
+    }
+
+    /** 总部发货：需先确认收款 */
+    @SaCheckRole(value = {"HQ_ADMIN", "HQ_OPS"}, mode = SaMode.OR)
+    @PutMapping("/orders/{id}/ship")
+    public R<Void> ship(@PathVariable Long id) {
+        purchaseService.ship(id);
+        return R.ok(null);
+    }
+
+    /** 门店确认入库：写门店库存与流水 */
+    @SaCheckRole(value = {"FRANCHISEE_ADMIN", "STORE_OP"}, mode = SaMode.OR)
+    @DataScope
+    @PutMapping("/orders/{id}/receive")
+    public R<Void> receive(@PathVariable Long id, @RequestBody ReceiveReq req) {
+        purchaseService.receive(id, req.getRequestNo());
+        return R.ok(null);
+    }
+
     @Data
     public static class RejectReq {
         private String reason;
+    }
+
+    @Data
+    public static class ReceiveReq {
+        private String requestNo;
     }
 }

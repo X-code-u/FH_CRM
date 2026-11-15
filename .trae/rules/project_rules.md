@@ -5,7 +5,7 @@
 ## 技术栈（固定，不得更换）
 
 - 后端：Java 17 + Spring Boot 3.5.x + Sa-Token + MyBatis-Plus 3.5.x
-- 数据库：PostgreSQL 16（本地开发 profile 用 H2 PG 兼容模式）；金额一律 `numeric(12,2)`/`BigDecimal`，禁止浮点
+- 数据库：MySQL 8.4.11（本地开发与生产统一，Docker 命名卷持久化）；金额一律 `decimal(12,2)`/`BigDecimal`，禁止浮点
 - 缓存：Redis 7（dev 环境可降级为内存实现）
 - 对象存储：MinIO（dev 环境先本地文件存储占位）
 - 前端：Vben Admin 5（vue-vben-admin monorepo，使用 apps/web-antd）+ Vue 3 + Vite + TS + Pinia + Ant Design Vue + Tailwind CSS + ECharts
@@ -52,4 +52,4 @@ store_type: JOIN/DIRECT | franchisee.status: NORMAL/FROZEN/TERMINATED | level.st
 
 ## 开发节奏
 
-小步迭代：每个模块 后端接口 + 前端页面 + 自测 一起交付；先跑通 M1（组织与权限）主链路，再推进 M2/M3。测试账号与初始化数据放 `db/seed.sql`。
+小步迭代：每个模块 后端接口 + 前端页面 + 自测 一起交付；先跑通 M1（组织与权限）主链路，再推进 M2/M3。测试账号与初始化数据放 `backend/src/main/resources/db/mysql/seed.sql`。

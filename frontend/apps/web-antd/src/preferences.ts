@@ -1,5 +1,4 @@
 import {
-  appCopyrightPreferences,
   defineOverridesPreferences,
   definePreferencesExtension,
 } from '@vben/preferences';
@@ -23,7 +22,13 @@ export const overridesPreferences = defineOverridesPreferences({
     accessMode: 'frontend',
     defaultHomePath: '/dashboard',
   },
-  copyright: appCopyrightPreferences,
+  copyright: {
+    enable: false,
+  },
+  logo: {
+    source: '/logo.png',
+    sourceDark: '/logo.png',
+  },
 });
 
 export const preferencesExtension =

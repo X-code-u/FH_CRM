@@ -1,16 +1,19 @@
 version: "3.8"
 services:
-  postgres:
-    image: postgres:16
+  mysql:
+    image: mysql:8.4.11
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
-      POSTGRES_DB: fangu
-      POSTGRES_USER: fangu
-      POSTGRES_PASSWORD: fangu123
-    ports: ["5432:5432"]
+      MYSQL_DATABASE: fangu
+      MYSQL_USER: fangu
+      MYSQL_PASSWORD: fangu123
+      MYSQL_ROOT_PASSWORD: root123456
+      TZ: Asia/Shanghai
+    ports: ["3306:3306"]
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
-      - ./db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+      - mysqldata:/var/lib/mysql
+      - ./backend/src/main/resources/db/mysql/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./backend/src/main/resources/db/mysql/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
 
   redis:
     image: redis:7
@@ -26,5 +29,5 @@ services:
     volumes: [miniodata:/data]
 
 volumes:
-  pgdata:
+  mysqldata:
   miniodata:

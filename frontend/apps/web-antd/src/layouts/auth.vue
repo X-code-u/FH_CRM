@@ -2,13 +2,15 @@
 import { computed } from 'vue';
 
 import { AuthPageLayout } from '@vben/layouts';
-import { preferences } from '@vben/preferences';
-
-import { $t } from '#/locales';
+import { preferences, usePreferences } from '@vben/preferences';
 
 const appName = computed(() => preferences.app.name);
-const logo = computed(() => preferences.logo.source);
-const logoDark = computed(() => preferences.logo.sourceDark);
+const logo = '/logo.png';
+const logoDark = '/logo.png';
+const { isDark } = usePreferences();
+const sloganImage = computed(() =>
+  isDark.value ? '/slogan-dark.png' : '/slogan-light.png',
+);
 </script>
 
 <template>
@@ -16,10 +18,17 @@ const logoDark = computed(() => preferences.logo.sourceDark);
     :app-name="appName"
     :logo="logo"
     :logo-dark="logoDark"
-    :page-description="$t('authentication.pageDesc')"
-    :page-title="$t('authentication.pageTitle')"
+    :page-description="''"
+    :page-title="''"
+    :slogan-image="sloganImage"
   >
     <!-- 自定义工具栏 -->
     <!-- <template #toolbar></template> -->
   </AuthPageLayout>
 </template>
+
+<style>
+.animate-float {
+  object-fit: contain;
+}
+</style>

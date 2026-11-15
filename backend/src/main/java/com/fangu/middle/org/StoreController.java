@@ -40,6 +40,28 @@ public class StoreController {
         return R.ok(null);
     }
 
+    /** 当前登录账号所属门店：门店账号下单时自动关联 */
+    @SaCheckRole(value = {"FRANCHISEE_ADMIN", "STORE_OP"}, mode = SaMode.OR)
+    @GetMapping("/my")
+    public R<StoreService.StoreVO> my() {
+        return R.ok(storeService.my());
+    }
+
+    /** 门店登录账号查询：总部超管 / 运营 */
+    @SaCheckRole(value = {"HQ_ADMIN", "HQ_OPS"}, mode = SaMode.OR)
+    @GetMapping("/{id}/account")
+    public R<com.fangu.middle.auth.StoreAccountService.AccountVO> account(@PathVariable Long id) {
+        return R.ok(storeService.getAccount(id));
+    }
+
+    /** 门店登录账号设置：总部为门店创建或重置店长账号 */
+    @SaCheckRole(value = {"HQ_ADMIN", "HQ_OPS"}, mode = SaMode.OR)
+    @PostMapping("/{id}/account")
+    public R<Void> saveAccount(@PathVariable Long id, @RequestBody StoreService.AccountSaveReq req) {
+        storeService.saveAccount(id, req);
+        return R.ok(null);
+    }
+
     @Data
     public static class StatusReq {
         private boolean active;

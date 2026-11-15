@@ -1,59 +1,107 @@
 import type { RouteRecordRaw } from 'vue-router';
 
-const ALL = [
-  'HQ_ADMIN',
-  'HQ_OPS',
-  'HQ_FIN',
-  'FRANCHISEE_ADMIN',
-  'STORE_OP',
-];
+const HQ = ['HQ_ADMIN', 'HQ_OPS', 'HQ_FIN'];
+const STORE_SIDE = ['FRANCHISEE_ADMIN', 'STORE_OP'];
+const ALL = [...HQ, ...STORE_SIDE];
 
 const routes: RouteRecordRaw[] = [
   {
     meta: {
-      icon: 'lucide:shopping-cart',
+      icon: 'lucide:layers',
       order: 5,
+      title: '套餐管理',
+      authority: STORE_SIDE,
+    },
+    name: 'Package',
+    path: '/package',
+    component: () => import('#/views/shop/Package.vue'),
+  },
+  {
+    meta: {
+      icon: 'lucide:clipboard-check',
+      order: 6,
+      title: '核销管理',
+      authority: STORE_SIDE,
+    },
+    name: 'Writeoff',
+    path: '/writeoff',
+    component: () => import('#/views/shop/Writeoff.vue'),
+  },
+  {
+    meta: {
+      icon: 'lucide:shopping-cart',
+      order: 10,
       title: '采购管理',
-      authority: ALL,
+      authority: STORE_SIDE,
     },
     name: 'Purchase',
     path: '/purchase',
     children: [
       {
-        name: 'PurchaseHQ',
-        path: 'hq',
+        name: 'PurchaseCreate',
+        path: 'create',
         component: () => import('#/views/shop/Purchase.vue'),
-        meta: { icon: 'lucide:building-2', title: '总部采购', authority: ALL },
+        meta: { icon: 'lucide:file-plus', title: '采购', authority: STORE_SIDE },
       },
       {
-        name: 'PurchaseSelf',
-        path: 'self',
-        component: () => import('#/views/shop/SelfPurchase.vue'),
-        meta: { icon: 'lucide:truck', title: '自采', authority: ALL },
+        name: 'PurchaseOrders',
+        path: 'orders',
+        component: () => import('#/views/shop/Order.vue'),
+        meta: {
+          icon: 'lucide:receipt-text',
+          title: '订单管理',
+          authority: STORE_SIDE,
+        },
       },
     ],
   },
   {
     meta: {
-      icon: 'lucide:store',
-      order: 6,
-      title: '门店管理',
+      icon: 'lucide:clipboard-check',
+      order: 20,
+      title: '审批中心',
+      authority: HQ,
+    },
+    name: 'Approval',
+    path: '/approval',
+    component: () => import('#/views/shop/Order.vue'),
+  },
+  {
+    meta: {
+      icon: 'lucide:wallet',
+      order: 30,
+      title: '财务管理',
       authority: ALL,
     },
-    name: 'Shop',
-    path: '/shop',
+    name: 'Finance',
+    path: '/finance',
+    redirect: '/finance/overview',
     children: [
       {
-        name: 'ShopOrder',
-        path: 'order',
-        component: () => import('#/views/shop/Order.vue'),
-        meta: { icon: 'lucide:receipt-text', title: '订单', authority: ALL },
+        name: 'FinanceOverview',
+        path: 'overview',
+        component: () => import('#/views/finance/Index.vue'),
+        meta: { icon: 'lucide:layout-dashboard', title: '财务概览', authority: ALL },
       },
       {
-        name: 'ShopStaff',
-        path: 'staff',
-        component: () => import('#/views/shop/Staff.vue'),
-        meta: { icon: 'lucide:users-round', title: '人员管理', authority: ALL },
+        name: 'FinanceOrders',
+        path: 'orders',
+        component: () => import('#/views/finance/Order.vue'),
+        meta: {
+          icon: 'lucide:receipt-text',
+          title: '订单管理',
+          authority: STORE_SIDE,
+        },
+      },
+      {
+        name: 'FinanceHqOrders',
+        path: 'hq-orders',
+        component: () => import('#/views/finance/HqOrder.vue'),
+        meta: {
+          icon: 'lucide:receipt-text',
+          title: '订单管理',
+          authority: ['HQ_ADMIN', 'HQ_FIN'],
+        },
       },
     ],
   },

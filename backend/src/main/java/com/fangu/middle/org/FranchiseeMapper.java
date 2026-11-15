@@ -7,6 +7,6 @@ import org.apache.ibatis.annotations.Select;
 @Mapper
 public interface FranchiseeMapper extends BaseMapper<Franchisee> {
 
-    @Select("SELECT COALESCE(MAX(CAST(SUBSTRING(franchisee_code, 2) AS INTEGER)), 0) FROM franchisee")
+    @Select("SELECT COALESCE(MAX(CAST(SUBSTRING(franchisee_code, 2) AS SIGNED)), 0) FROM franchisee")
     int maxCodeSeq();
 }

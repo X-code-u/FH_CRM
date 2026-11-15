@@ -6,7 +6,7 @@ import { useUserStore } from '@vben/stores';
 
 import { message } from 'ant-design-vue';
 
-import { getStorePageApi, type StoreItem } from '#/api/org';
+import { getMyStoreApi, getStorePageApi, type StoreItem } from '#/api/org';
 import {
   createPurchaseApi,
   getMaterialOptionsApi,
@@ -22,6 +22,7 @@ const isStoreOperator = computed(() => roles.value.includes('STORE_OP'));
 const isFranchiseeAdmin = computed(() => roles.value.includes('FRANCHISEE_ADMIN'));
 
 const storeOptions = ref<StoreItem[]>([]);
+const myStore = ref<StoreItem>();
 const storeId = ref<number>();
 const materials = ref<MaterialItem[]>([]);
 const qtyMap = reactive<Record<number, number | null>>({});
@@ -57,9 +58,9 @@ async function load() {
       const data = await getStorePageApi({ pageNum: 1, pageSize: 200 });
       storeOptions.value = data.records.filter((s) => s.isActive);
     }
-    const ownStoreId = (userStore.userInfo as any)?.storeId;
-    if (isStoreOperator.value && ownStoreId) {
-      storeId.value = Number(ownStoreId);
+    if (isStoreOperator.value) {
+      myStore.value = await getMyStoreApi();
+      storeId.value = myStore.value.id;
     }
   } finally {
     loading.value = false;
@@ -94,14 +95,6 @@ onMounted(load);
 <template>
   <Page title="采购" description="门店向总部下单，提交后由总部审批（审批时可调整数量）">
     <a-card :bordered="false">
-      <a-alert
-        type="info"
-        show-icon
-        class="mb-4"
-        message="采购说明"
-        description="下单后为待审批状态，总部可修改数量后通过或驳回；结算价按定价规则自动解析，无需手工填写。"
-      />
-
       <a-form layout="inline" class="mb-4">
         <a-form-item label="采购门店">
           <a-select
@@ -115,13 +108,13 @@ onMounted(load);
             v-else
             :value="
               isStoreOperator
-                ? (userStore.userInfo as any)?.storeId
-                  ? '当前登录门店'
+                ? myStore
+                  ? `${myStore.name}（${myStore.storeCode}）`
                   : '未绑定门店'
                 : '仅门店账号可下单'
             "
             disabled
-            class="w-48"
+            class="w-72"
           />
         </a-form-item>
       </a-form>

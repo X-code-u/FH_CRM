@@ -33,15 +33,15 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: jdbc:h2:mem:fangu;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: ""
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:fangu}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&forceConnectionTimeZoneToSession=true&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${MYSQL_USER:fangu}
+    password: ${MYSQL_PASSWORD:fangu123}
   sql:
     init:
       mode: always
-      schema-locations: classpath:db/schema.sql
-      data-locations: classpath:db/seed.sql
+      schema-locations: classpath:db/mysql/schema.sql
+      data-locations: classpath:db/mysql/seed.sql
 
 ---
 spring:
@@ -49,7 +49,12 @@ spring:
     activate:
       on-profile: prod
   datasource:
-    url: jdbc:postgresql://${PG_HOST:postgres}:${PG_PORT:5432}/${PG_DB:fangu}
-    username: ${PG_USER:fangu}
-    password: ${PG_PASSWORD:fangu123}
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DB:fangu}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&forceConnectionTimeZoneToSession=true&allowPublicKeyRetrieval=true&useSSL=false&rewriteBatchedStatements=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: ${MYSQL_USER:fangu}
+    password: ${MYSQL_PASSWORD:fangu123}
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/mysql/schema.sql
+      data-locations: classpath:db/mysql/seed.sql

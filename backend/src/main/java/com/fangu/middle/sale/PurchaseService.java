@@ -12,6 +12,7 @@ import com.fangu.middle.org.Franchisee;
 import com.fangu.middle.org.FranchiseeService;
 import com.fangu.middle.org.Store;
 import com.fangu.middle.org.StoreService;
+import com.fangu.middle.stock.StockService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
@@ -46,6 +47,7 @@ public class PurchaseService {
     private final FranchiseeService franchiseeService;
     private final PricingResolver pricingResolver;
     private final AuthService authService;
+    private final StockService stockService;
 
     /** 门店下单 */
     @Transactional
@@ -117,14 +119,23 @@ public class PurchaseService {
     }
 
     public PageResult<OrderVO> page(OrderQuery query) {
+        List<String> statusList = query.getStatuses() == null || query.getStatuses().isBlank()
+                ? List.of()
+                : java.util.Arrays.stream(query.getStatuses().split(","))
+                        .map(String::trim).filter(s -> !s.isEmpty()).toList();
         Page<PurchaseOrder> page = orderMapper.selectPage(
                 new Page<>(query.getPageNum(), query.getPageSize()),
                 Wrappers.<PurchaseOrder>lambdaQuery()
                         .eq(query.getStatus() != null && !query.getStatus().isBlank(),
                                 PurchaseOrder::getStatus, query.getStatus())
+                        .in(!statusList.isEmpty(), PurchaseOrder::getStatus, statusList)
                         .like(query.getOrderNo() != null && !query.getOrderNo().isBlank(),
                                 PurchaseOrder::getOrderNo, query.getOrderNo())
                         .eq(query.getStoreId() != null, PurchaseOrder::getStoreId, query.getStoreId())
+                        .eq(query.getPayStatus() != null && !query.getPayStatus().isBlank(),
+                                PurchaseOrder::getPayStatus, query.getPayStatus())
+                        .eq(query.getReceiptStatus() != null && !query.getReceiptStatus().isBlank(),
+                                PurchaseOrder::getReceiptStatus, query.getReceiptStatus())
                         .orderByDesc(PurchaseOrder::getId));
         Map<Long, Store> stores = storeMap(page.getRecords().stream()
                 .map(PurchaseOrder::getStoreId).filter(Objects::nonNull).distinct().toList());
@@ -231,6 +242,81 @@ public class PurchaseService {
         }
     }
 
+    /** 门店付款（一期手动确认，一次性全额） */
+    @Transactional
+    public void pay(Long id) {
+        PurchaseOrder order = orderMapper.selectById(id);
+        if (order == null) {
+            throw new BizException(40001, "采购单不存在或无权访问");
+        }
+        if (!"CONFIRMED".equals(order.getStatus())) {
+            throw new BizException(40004, "仅审核通过的订单可付款");
+        }
+        if ("PAID".equals(order.getPayStatus())) {
+            throw new BizException(40004, "订单已付款，请勿重复操作");
+        }
+        if (orderMapper.payIfUnpaid(id) == 0) {
+            throw new BizException(40005, "单据状态已变更，请刷新后重试");
+        }
+    }
+
+    /** 总部财务确认收款（门店付款后） */
+    @Transactional
+    public void confirmReceipt(Long id) {
+        PurchaseOrder order = orderMapper.selectById(id);
+        if (order == null) {
+            throw new BizException(40001, "采购单不存在");
+        }
+        if (!"PAID".equals(order.getPayStatus())) {
+            throw new BizException(40004, "门店尚未付款，无法确认收款");
+        }
+        if (orderMapper.confirmReceiptIfPaid(id) == 0) {
+            throw new BizException(40004, "订单已确认收款或状态不允许");
+        }
+    }
+
+    /** 总部发货（确认收款后） */
+    @Transactional
+    public void ship(Long id) {
+        PurchaseOrder order = orderMapper.selectById(id);
+        if (order == null) {
+            throw new BizException(40001, "采购单不存在");
+        }
+        if (!"CONFIRMED".equals(order.getStatus())) {
+            throw new BizException(40004, "仅已审核且未发货的订单可发货");
+        }
+        if (!"CONFIRMED".equals(order.getReceiptStatus())) {
+            throw new BizException(40004, "请先确认收款后再发货");
+        }
+        if (orderMapper.shipIfReady(id) == 0) {
+            throw new BizException(40005, "单据状态已变更，请刷新后重试");
+        }
+    }
+
+    /** 门店确认入库：写门店库存与流水，requestNo 幂等 */
+    @Transactional
+    public void receive(Long id, String requestNo) {
+        if (requestNo == null || requestNo.isBlank()) {
+            throw new BizException(40001, "缺少入库幂等号");
+        }
+        PurchaseOrder order = orderMapper.selectById(id);
+        if (order == null) {
+            throw new BizException(40001, "采购单不存在或无权访问");
+        }
+        if (!"SHIPPED".equals(order.getStatus())) {
+            throw new BizException(40004, "仅已发货订单可确认入库");
+        }
+        List<PurchaseOrderItem> items = itemMapper.selectList(Wrappers.<PurchaseOrderItem>lambdaQuery()
+                .eq(PurchaseOrderItem::getOrderId, id));
+        List<StockService.InboundItem> inbound = items.stream()
+                .map(i -> new StockService.InboundItem(i.getMaterialId(), i.getQty()))
+                .toList();
+        stockService.inbound(order.getStoreId(), id, inbound, requestNo);
+        if (orderMapper.receiveIfShipped(id) == 0) {
+            throw new BizException(40005, "单据状态已变更，请刷新后重试");
+        }
+    }
+
     /** 门店可用性 + 归属校验：门店账号只能给自己门店下单，加盟商只能给名下门店下单 */
     private Store requireOrderableStore(Long storeId) {
         CurrentAccount acc = authService.current();
@@ -322,8 +408,12 @@ public class PurchaseService {
         private long pageNum = 1;
         private long pageSize = 10;
         private String status;
+        /** 逗号分隔的多状态过滤，如 CONFIRMED,SHIPPED */
+        private String statuses;
         private String orderNo;
         private Long storeId;
+        private String payStatus;
+        private String receiptStatus;
     }
 
     @Data
@@ -337,9 +427,15 @@ public class PurchaseService {
         private LocalDate orderDate;
         private BigDecimal totalAmount;
         private String status;
+        private String payStatus;
+        private String receiptStatus;
         private String remark;
         private String cancelReason;
         private OffsetDateTime confirmedAt;
+        private OffsetDateTime paidAt;
+        private OffsetDateTime receiptAt;
+        private OffsetDateTime shippedAt;
+        private OffsetDateTime receivedAt;
         private OffsetDateTime createdAt;
 
         static OrderVO from(PurchaseOrder o) {
@@ -350,9 +446,15 @@ public class PurchaseService {
             vo.orderDate = o.getOrderDate();
             vo.totalAmount = o.getTotalAmount();
             vo.status = o.getStatus();
+            vo.payStatus = o.getPayStatus();
+            vo.receiptStatus = o.getReceiptStatus();
             vo.remark = o.getRemark();
             vo.cancelReason = o.getCancelReason();
             vo.confirmedAt = o.getConfirmedAt();
+            vo.paidAt = o.getPaidAt();
+            vo.receiptAt = o.getReceiptAt();
+            vo.shippedAt = o.getShippedAt();
+            vo.receivedAt = o.getReceivedAt();
             vo.createdAt = o.getCreatedAt();
             return vo;
         }

@@ -6,7 +6,7 @@ const routes: RouteRecordRaw[] = [
   {
     meta: {
       icon: 'lucide:building-2',
-      order: 10,
+      order: 50,
       title: '组织档案',
       authority: HQ,
     },
@@ -36,8 +36,8 @@ const routes: RouteRecordRaw[] = [
   {
     meta: {
       icon: 'lucide:package',
-      order: 20,
-      title: '商品与定价',
+      order: 10,
+      title: '产品管理',
       authority: HQ,
     },
     name: 'Material',
@@ -47,13 +47,7 @@ const routes: RouteRecordRaw[] = [
         name: 'MaterialList',
         path: 'list',
         component: () => import('#/views/material/List.vue'),
-        meta: { icon: 'lucide:boxes', title: '商品管理', authority: HQ },
-      },
-      {
-        name: 'MaterialPrice',
-        path: 'price',
-        component: () => import('#/views/material/Price.vue'),
-        meta: { icon: 'lucide:tag', title: '分级供货定价', authority: HQ },
+        meta: { icon: 'lucide:boxes', title: '产品', authority: HQ },
       },
     ],
   },
